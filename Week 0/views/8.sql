@@ -1,0 +1,1 @@
+SELECT "english_title" FROM "views" ORDER BY contrast LIMIT (5);
