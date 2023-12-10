@@ -1,0 +1,68 @@
+-- ".schema" shows the schema of the table or database
+
+--Normalizing
+--Normalization; These are the processes carried out during the database design phase to prevent data duplication, data loss or data delay.
+
+
+--CREATE TABLE --creates table
+
+CREATE TABLE "riders" (
+    "id",
+    "name"
+);
+
+CREATE TABLE "stations" (
+    "id",
+    "name",
+    "line"
+);
+
+--"riders" "stations" join table
+
+CREATE TABLE "visits" (
+    "rider_id",
+    "station_id"
+);
+
+--DROP TABLE -- deletes existing table
+
+DROP TABLE "riders"
+DROP TABLE "stations"
+DROP TABLE "visits"
+
+--Data Types and Storage Classes
+
+--Null: nothing, or empty value
+--Integer: numbers without decimal points
+--Real: decimal or floating point numbers
+--Text: characters or strings
+--Blob: Binary Large Object, for storing objects in binary (useful for images, audio etc.)
+
+--PRIMARY KEY
+--primary key is the unique identification number in a table
+
+--FOREIGN KEY
+--A FOREIGN KEY is a field (or collection of fields) that references a PRIMARY KEY in another table.
+
+--Column Constraints
+
+--CHECK: allows checking for a condition, like all values in the column must be greater than 0
+--DEFAULT: uses a default value if none is supplied for a row
+--NOT NULL: dictates that a null or empty value cannot be inserted into the column
+--UNIQUE: dictates that every value in this column must be unique
+
+--Altering Tables
+
+--ALTER TABLE
+
+-- Renames "vists" table to "swipes"
+ALTER TABLE "visits" RENAME TO "swipes";
+
+-- Adds "ttpe" column to "swipes" table (intentional typo)
+ALTER TABLE "swipes" ADD COLUMN "ttpe" TEXT;
+
+-- Fixes typo using RENAME COLUMN
+ALTER TABLE "swipes" RENAME COLUMN "ttpe" TO "type";
+
+--delete column
+ALTER TABLE "swipes" DROP COLUMN "type";
