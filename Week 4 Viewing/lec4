@@ -1,0 +1,172 @@
+-- Views
+ 
+-- A view is a virtual table defined by a query.
+ 
+-- simplifying: putting together data from different tables to be queried more simply,
+-- aggregating: running aggregate functions, like finding the sum, and storing the results,
+-- partitioning: dividing data into logical pieces,
+-- securing: hiding columns that should be kept secure. While there are other ways in which views can be useful, in this lecture we will focus on the above four.
+
+-- Simplifying
+
+-- Finds books written by Fernanda Melchor
+SELECT "title" FROM "books"
+WHERE "id" IN (
+    SELECT "book_id" FROM "authored"
+    WHERE "author_id" = (
+        SELECT "id" FROM "authors"
+        WHERE "name" = 'Fernanda Melchor'
+    )
+);
+
+-- Joins authors with their book titles
+SELECT "name", "title" FROM "authors"
+JOIN "authored" ON "authors"."id" = "authored"."author_id"
+JOIN "books" ON "books"."id" = "authored"."book_id";
+
+-- Creates a view from the query to join authors with their book titles
+CREATE VIEW "longlist" AS
+SELECT "name", "title" FROM "authors"
+JOIN "authored" ON "authors"."id" = "authored"."author_id"
+JOIN "books" ON "books"."id" = "authored"."book_id";
+
+-- Finds books written by Fernanda Melchor, now using a view
+SELECT "title" FROM "longlist" WHERE "name" = 'Fernanda Melchor';
+
+-- ORDER BY 
+SELECT "name","title" FROM "longlist" ORDER BY "title";
+
+-- Aggregating
+
+-- Returns book IDs and unrounded ratings
+SELECT "book_id", AVG("rating") AS "rating" FROM "ratings"
+GROUP BY "book_id";
+
+-- Returns book IDs and rounded ratings
+SELECT "book_id", ROUND(AVG("rating"), 2) AS "rating" FROM "ratings"
+GROUP BY "book_id";
+
+-- Adds book IDs, rounded ratings, title, and year columns
+SELECT "book_id", "title", "year", ROUND(AVG("rating"), 2) AS "rating" FROM "ratings"
+JOIN "books" ON "ratings"."book_id" = "books"."id"
+GROUP BY "book_id";
+
+-- Defines book IDs, rounded ratings, title, and year columns as a view
+CREATE VIEW "average_book_ratings" AS
+SELECT "book_id" AS "id", "title", "year", ROUND(AVG("rating"), 2) AS "rating" FROM "ratings"
+JOIN "books" ON "ratings"."book_id" = "books"."id"
+GROUP BY "book_id";
+
+-- Temporary Views
+
+-- Finds average book ratings by year nominated
+SELECT "year", ROUND(AVG("rating"), 2) AS "rating" FROM "average_book_ratings" 
+GROUP BY "year";
+
+-- Creates temporary view of average ratings by year
+CREATE TEMPORARY VIEW "average_ratings_by_year" ("year", "rating") AS
+SELECT "year", ROUND(AVG("rating"), 2) AS "rating" FROM "average_book_ratings" 
+GROUP BY "year";
+
+-- Returns average_rating_by_year the temporary view
+SELECT * FROM "average_ratings_by_year";
+
+-- Common Table Expression (CTE)
+     
+-- Drops the view "average_book_ratings"
+DROP VIEW "average_book_ratings";
+
+-- Shows that CTEs are views accessible for the duration of a query
+WITH "average_book_ratings" AS (
+  SELECT "book_id", "title", "year", ROUND(AVG("rating"), 2) AS "rating" FROM "ratings"
+  JOIN "books" ON "ratings"."book_id" = "books"."id"
+  GROUP BY "book_id"
+)
+SELECT "year" , ROUND(AVG("rating"), 2) AS "rating" FROM "average_book_ratings"
+GROUP BY "year";
+
+-- Partitioning
+
+-- Queries for 2022 longlisted books
+SELECT "id", "title" FROM "books"
+WHERE "year" = 2022;
+
+-- Creates view of 2022 longlisted books
+CREATE VIEW "2022" AS
+SELECT "id", "title" FROM "books"
+WHERE "year" = 2022;
+
+-- Queries for 2021 longlisted books
+SELECT "id", "title" FROM "books"
+WHERE "year" = 2021;
+
+-- Creates view of 2021 longlisted books
+CREATE VIEW "2021" AS
+SELECT "id", "title" FROM "books"
+WHERE "year" = 2021;
+
+--Securing
+
+-- Reveals all rides information
+SELECT * FROM "rides";
+
+-- Reveals only subset of columns
+SELECT "id", "origin", "destination" FROM "rides";
+
+-- Makes clear that rider is anonymous
+SELECT "id", "origin", "destination", 'Anonymous' AS "rider" FROM "rides";
+
+-- Creates a view
+CREATE VIEW "analysis" AS
+SELECT "id", "origin", "destination", 'Anonymous' AS "rider" FROM "rides";
+
+-- Queries the view
+SELECT "origin", "destination", "rider" FROM "analysis";
+
+-- Triggers with Views
+
+-- Add a "deleted" column to "collections" table
+ALTER TABLE "collections" ADD COLUMN "deleted" INTEGER DEFAULT 0;
+
+-- Instead of deleting an item, update its deleted column to be 1
+UPDATE "collections" SET "deleted" = 1 WHERE "title" = 'Farmers working at dawn';
+
+-- Select all items from collections that are not deleted
+SELECT * FROM "collections" WHERE "deleted" = 0;
+
+-- Create a view with the same name as the collections table
+CREATE VIEW "current_collections" AS
+SELECT "id", "title", "accession_number", "acquired" FROM "collections" WHERE "deleted" = 0;
+
+-- Create trigger to delete items from a view
+CREATE TRIGGER "delete"
+INSTEAD OF DELETE ON "current_collections"
+FOR EACH ROW
+BEGIN
+    UPDATE "collections" SET "deleted" = 1 WHERE "id" = OLD."id";
+END;
+
+-- Fails to delete an item from the view
+DELETE FROM "current_collections" WHERE "title" = 'Imaginative landscape';
+
+-- Create trigger to revert an item's deletion
+CREATE TRIGGER "insert_when_exists"
+INSTEAD OF INSERT ON "current_collections"
+FOR EACH ROW 
+WHEN NEW."accession_number" IN (SELECT "accession_number" FROM "collections")
+BEGIN
+    UPDATE "collections" SET "deleted" = 0 WHERE "accession_number" = NEW."accession_number";
+END;
+
+-- Create trigger to insert a new item to collections
+CREATE TRIGGER "insert_when_new"
+INSTEAD OF INSERT ON "current_collections"
+FOR EACH ROW
+WHEN NEW."accession_number" NOT IN (SELECT "accession_number" FROM "collections")
+BEGIN
+    INSERT INTO "collections" ("title", "accession_number", "acquired")
+    VALUES (NEW."title", NEW."accession_number", NEW."acquired");
+END;
+
+INSERT INTO "current_collections" ("title","accession_number","acquired")
+VALUES ('Imaginative landspace', '56.496',NULL);
