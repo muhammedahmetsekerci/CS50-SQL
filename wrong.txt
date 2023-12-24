@@ -1,0 +1,4 @@
+Week 1 Relating - Packages - Devious Delivery solved
+Week 1 Relating - Moneyball - 12.sql produces correct result
+Week 4 Viewing - bnb - available.sql
+
