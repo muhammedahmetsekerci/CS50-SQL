@@ -1,0 +1,221 @@
+-- Optimizing
+
+SELECT * FROM "movies";
+SELECT * FROM "movies" limit 5;
+SELECT * FROM "movies" WHERE "title" = "Cars";
+
+-- timer
+
+.timer on
+SELECT * FROM "movies" WHERE "title" = "Cars";
+--“real” time indicates the stopwatch time, or the time between executing the query and obtaining the results. 
+
+-- Index
+
+--We can optimize this query to be more efficient than a scan. In the same way that textbooks often have an index, databases tables can have an index as well. 
+--An index, in database terminology, is a structure used to speed up the retrieval of rows from a table.
+CREATE INDEX name 
+ON TABLE (column0, ...);
+
+.timer on
+CREATE INDEX "title_index" ON "movies" ("title");
+SELECT * FROM "movies" WHERE "title" = 'Cars';
+
+-- EXPLAIN QUERY PLAN
+EXPLAIN QUERY PLAN
+SELECT * FROM "movies" WHERE "title" = "Cars";
+
+DROP INDEX "title_index";
+
+EXPLAIN QUERY PLAN
+SELECT * FROM "movies" WHERE "title" = "Cars";
+
+-- Time searching for movies Tom Hanks has starred in
+.timer on
+SELECT "title" FROM "movies" WHERE "id" IN (
+    SELECT "movie_id" FROM "stars" WHERE "person_id" = (
+        SELECT "id" FROM "people" WHERE "name" = 'Tom Hanks'
+    )
+);
+
+-- Identify which columns we should create indexes on
+EXPLAIN QUERY PLAN
+SELECT "title" FROM "movies" WHERE "id" IN (
+    SELECT "movie_id" FROM "stars" WHERE "person_id" = (
+        SELECT "id" FROM "people" WHERE "name" = 'Tom Hanks'
+    )
+);
+
+-- Create index on foreign key
+.timer on
+CREATE INDEX "person_index" ON "stars" ("person_id");
+
+-- Create index to speed name look-ups
+CREATE INDEX "name_index" ON "people" ("name");
+.timer off
+
+
+EXPLAIN QUERY PLAN
+SELECT "title" FROM "movies" WHERE "id" IN (
+    SELECT "movie_id" FROM "stars" WHERE "person_id" = (
+        SELECT "id" FROM "people" WHERE "name" = 'Tom Hanks'
+    )
+);
+
+-- Covering Index
+
+--A covering index means that all the information needed for the query 
+--can be found within the index itself.
+
+DROP INDEX "person_index";
+
+-- Make person_index a covering index for the above query
+CREATE INDEX "person_index" ON "stars" ("person_id", "movie_id");
+
+EXPLAIN QUERY PLAN
+SELECT "title" FROM "movies" WHERE "id" IN (
+    SELECT "movie_id" FROM "stars" WHERE "person_id" = (
+        SELECT "id" FROM "people" WHERE "name" = 'Tom Hanks'
+    )
+);
+
+-- Compare runtime with indexes
+.timer on
+SELECT "title" FROM "movies" WHERE "id" IN (
+    SELECT "movie_id" FROM "stars" WHERE "person_id" IN (
+        SELECT "id" FROM "people" WHERE "name" = 'Tom Hanks'
+    )
+);
+.timer off
+
+-- B-Tree
+
+--An index is stored in a database 
+--as a data structure called a B-Tree, or balanced tree.
+
+-- Partial Index
+
+--This is an index that includes only a subset of rows from a table, 
+--allowing us to save some space that a full index would occupy.
+
+CREATE INDEX name
+ON table (column0, ...)
+WHERE condition;
+
+-- Creates a partial index to speed up searches involving the present year
+CREATE INDEX "recents" ON "movies" ("title")
+WHERE "year" = 2023; 
+
+-- Times searching for movies in 2023
+.timer on
+SELECT "title" FROM "movies" WHERE "year" = 2023;
+
+-- Shows query's usage of index
+EXPLAIN QUERY PLAN
+SELECT "title" FROM "movies" WHERE "year" = 2023;
+
+-- Shows not using an index after creating a partial index
+EXPLAIN QUERY PLAN
+SELECT "title" FROM "movies" WHERE "year" = 1998;
+
+-- VACUUM
+
+--There are ways to delete unused space in our database. 
+--SQLite allows us to “vacuum” data — this cleans up previously deleted data (that is actually not deleted, 
+--but just marked as space being available for the next INSERT).
+
+-- To find the size of movies.db on the terminal, we can use a Unix command
+du -b movies.db
+
+DROP INDEX "person_index";
+DROP INDEX "name_index";
+DROP INDEX "recents";
+
+-- Now, if we run the Unix command again, we see that the size of the database has not decreased! To actually clean up the deleted space, we need to vacuum it. 
+--We can run the following command in SQLite.
+
+VACUUM;
+du -b movies.db
+
+-- This might take a second or two to run. 
+-- On running the Unix command to check the size of the database again, 
+-- we can should see a smaller size. Once we drop all the indexes and vacuum again, 
+-- the database will be considerably smaller than 158 MB (in lecture, around 100 MB).
+
+-- Concurrency
+
+--Thus far, we have seen how to optimize single queries. 
+--Now, we will look at how to allow not just one query, but multiple at a time.
+
+--Transactions
+
+--To an outside observer, it should seem like the different parts of a transaction happen all at once. 
+--In database terminology, a transaction is an individual unit of work 
+-- — something that cannot be broken down into smaller pieces.
+
+-- atomicity: can’t be broken down into smaller pieces,
+-- consistency: should not violate a database constraint,
+-- isolation: if multiple users access a database, their transactions cannot interfere with each other,
+-- durability: in case of any failure within the database, all data changed by transactions will remain.
+
+BEGIN TRANSACTION;
+...
+COMMIT;
+
+SELECT * FROM "accounts";
+
+-- Updates balance without a transaction
+UPDATE "accounts" SET "balance" = "balance" + 10 WHERE "id" = 2;
+
+SELECT * FROM "accounts"; -- Viewing here provides an improper view of total balances
+
+UPDATE "accounts" SET "balance" = "balance" - 10 WHERE "id" = 1;
+
+SELECT * FROM "accounts"; -- Viewing here, after all updated, results in proper view
+
+-- Resets table
+UPDATE "accounts" SET "balance" = "balance" - 10 WHERE "id" = 2;
+UPDATE "accounts" SET "balance" = "balance" + 10 WHERE "id" = 1;
+
+-- Creates a transaction which is successful
+-- Views state of database from other terminal mid-way through transaction
+BEGIN TRANSACTION;
+UPDATE "accounts" SET "balance" = "balance" + 10 WHERE "id" = 2;
+UPDATE "accounts" SET "balance" = "balance" - 10 WHERE "id" = 1;
+COMMIT;
+
+-- ROLLBACK;
+
+--The way we implement reverting the transaction is using ROLLBACK. 
+
+BEGIN TRANSACTION;
+..
+ROLLBACK;
+
+-- Completes invalid update of balance without a transaction
+UPDATE "accounts" SET "balance" = "balance" + 10 WHERE "id" = 2;
+UPDATE "accounts" SET "balance" = "balance" - 10 WHERE "id" = 1; -- Invokes constraint error, which is ABORTed
+
+-- Rolls back the balance
+UPDATE "accounts" SET "balance" = "balance" - 10 WHERE "id" = 2;
+
+-- Creates a transaction which should be rolled back
+BEGIN TRANSACTION;
+UPDATE "accounts" SET "balance" = "balance" + 10 WHERE "id" = 2;
+UPDATE "accounts" SET "balance" = "balance" - 10 WHERE "id" = 1; -- Invokes constraint error, which is ABORTed
+ROLLBACK;
+
+-- RACE Consitions
+
+--Transactions can help guard against race conditions.
+
+-- Locks
+
+--To make transactions sequential, SQLite and other database management systems use locks on databases.
+--A table in a database could be in a few different states:
+
+--UNLOCKED: this is the default state when no user is accessing the database,
+--SHARED: when a transaction is reading data from the database, it obtains shared lock that allows other transactions to read simultaneously from the database,
+--EXCLUSIVE: if a transaction needs to write or update data, it obtains an exclusive lock on the database that does not allow other transactions to occur at the same time (not even a read)
+
+BEGIN EXCLUSIVE TRANSACTION;
