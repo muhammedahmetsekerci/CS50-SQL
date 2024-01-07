@@ -15,7 +15,7 @@ select * from addresses where id = 854;
 
 -- *** The Forgotten Gift ***
 select * from scans where package_id = (
-    select "id" from packages where from_address_id = (select "id" from addresses where address = "109 Tileston Street")
+    select "id" from packages where "from_address_id" = (select "id" from addresses where "address" = "109 Tileston Street")
 );
 
 select "address" from addresses where id = 7432;

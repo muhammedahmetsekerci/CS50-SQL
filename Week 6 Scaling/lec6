@@ -1,0 +1,301 @@
+--Scaling
+
+--Scalability is the ability to increase or decrease the capacity of an application or database to meet demand.
+
+--MySQL
+
+-- Starts MySQL server using Docker
+docker container run --name mysql -p 3306:3306 -v /workspaces/$RepositoryName:/mnt -e MYSQL_ROOT_PASSWORD=crimson -d mysql
+
+-- Start docker container
+docker start mysql
+
+-- Logs in, if using 'crimson' as password
+mysql -h 127.0.0.1 -P 3306 -u root -p
+
+-- Lists all databases on server
+SHOW DATABASES;
+
+--Creating a new database:
+CREATE DATABASE `mbta`;
+
+--Mysql Integer Types
+
+--TINYINT , SMALLINT , MEDIUMINT , INT , BIGINT
+-- 1byte ,   2byte ,     3byte  , 4byte,  8byte
+
+--AUTO_INCREMENT Provides automatic increase
+CREATE TABLE `cards` (
+    `id` INT AUTO_INCREMENT,
+    PRIMARY KEY(`id`)
+);
+
+--After creating the table, we can see a list of the existing tables by running:
+SHOW TABLES;
+
+
+--For further details about a table, we can use the DESCRIBE command.
+DESCRIBE `cards`;
+
+--To handle text, MySQL provides many types. 
+--Two commonly used ones are CHAR — a fixed width string, 
+--and VARCHAR — a string of variable length. 
+--MySQL also has a type TEXT but unlike in SQLite, 
+--this type is used for longer chunks of text like paragraphs, pages of books etc. 
+--Based on the length of the text, it could be one of: 
+--TINYTEXT, TEXT, MEDIUMTEXT and LONGTEXT. Additionally, 
+--we have the BLOB type to store binary strings.
+
+--Now, let us create the stations table in MySQL.
+CREATE TABLE `stations` (
+    `id` INT AUTO_INCREMENT,
+    `name` VARCHAR(32) NOT NULL UNIQUE,
+    `line` ENUM('blue', 'green', 'orange', 'red') NOT NULL,
+    PRIMARY KEY(`id`)
+);
+
+DESCRIBE `stations`;
+
+--We could use DATE, YEAR, TIME, DATETIME and 
+--TIMESTAMP (for more precise times) to store our date and time values. 
+
+--In SQLite, we had a REAL data type. 
+--Here, our options are FLOAT and DOUBLE PRECISION as shown in the table below.
+--FLOAT 4Byte, DOUBLE PRECISION 8Byte
+
+--There is also a way in MySQL to use a decimal (fixed precision) type. 
+--With this, we would specify the number of digits in the number to be represented, 
+--and the number of digits after the decimal point.
+
+--Let us now create the swipes table.
+
+CREATE TABLE `swipes` (
+    `id` INT AUTO_INCREMENT,
+    `card_id` INT,
+    `station_id` INT,
+    `type` ENUM('enter', 'exit', 'deposit') NOT NULL,
+    `datetime` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `amount` DECIMAL(5,2) NOT NULL CHECK(`amount` != 0),
+    PRIMARY KEY(`id`),
+    FOREIGN KEY(`station_id`) REFERENCES `stations`(`id`),
+    FOREIGN KEY(`card_id`) REFERENCES `cards`(`id`)
+);
+
+--Notice the use of DEFAULT CURRENT_TIMESTAMP to indicate that the 
+--timestamp should be auto-filled to store the current 
+--time if no value is provided.
+
+DESCRIBE `swipes`;
+
+--Altering Tables
+
+--MODIFY ...;
+
+--f we wanted to add a silver line to the possible lines a station 
+ALTER TABLE `stations` 
+MODIFY `line` ENUM('blue', 'green', 'orange', 'red', 'silver') NOT NULL;
+
+--Stored Procedures
+--Stored procedures are a way to automate SQL statements and run them repeatedly.
+
+ALTER TABLE `collections` 
+ADD COLUMN `deleted` TINYINT DEFAULT 0;
+
+delimiter //
+
+CREATE PROCEDURE `current_collection`()
+BEGIN
+    SELECT `title`, `accession_number`, `acquired` 
+    FROM `collections` 
+    WHERE `deleted` = 0;
+END//
+
+--After creating this, we must reset the delimited to ;.
+
+delimiter ;
+
+CALL current_collection();
+
+
+--If we soft-delete “Farmers working at dawn” and call 
+--the procedure again, we will find that the deleted row is not included in the output.
+UPDATE `collections` 
+SET `deleted` = 1 
+WHERE `title` = 'Farmers working at dawn';
+
+--Stored Procedures with Parameters
+
+CREATE TABLE `transactions` (
+    `id` INT AUTO_INCREMENT,
+    `title` VARCHAR(64) NOT NULL,
+    `action` ENUM('bought', 'sold') NOT NULL,
+    PRIMARY KEY(`id`)
+);
+
+--Now, if a piece of artwork is deleted from collections 
+--because it is being sold, we would also like to update 
+--this in the transactions table. Usually, 
+--this would be two different queries but with a 
+--stored procedure, we can give this sequence one name.
+
+delimiter //
+CREATE PROCEDURE `sell`(IN `sold_id` INT)
+BEGIN
+    UPDATE `collections` SET `deleted` = 1 
+    WHERE `id` = `sold_id`;
+    INSERT INTO `transactions` (`title`, `action`)
+    VALUES ((SELECT `title` FROM `collections` WHERE `id` = `sold_id`), 'sold');
+END//
+delimiter ;
+
+--We can now call the procedure to sell a particular item.
+--Suppose we want to sell “Imaginative landscape”.
+CALL `sell`(2);
+
+--Stored procedures can be considerably improved in logic and complexity 
+--by using some regular old programming constructs. 
+
+--IF, ELSEIF, ELSE
+--LOOP
+--REPEAT
+--WHILE
+--...
+
+--PostgreSQL
+
+--DATA Type
+--SMALLINT ,  INT   , BEGINT
+--  2Byte  , 4Byte  ,  8Byte
+
+--Serials are also integers, but they are serial numbers, 
+--usually used for primary keys.
+
+--Let us connect to the database server by opening PSQL 
+-- — the command line interface for PostgreSQL.
+psql postgresql://postgres@127.0.0.1:5432/postgres
+
+--To view all the databases, we can run \l and it pulls up a list.
+
+--To create the MBTA database, we can run:
+CREATE DATABASE "mbta";
+
+--To connect to this specific database, we can run \c "mbta".
+--To list out all the tables in the database, we can run \dt
+
+--create the cards
+CREATE TABLE "cards" (
+    "id" SERIAL,
+    PRIMARY KEY("id")
+);
+
+--To describe a table in PostgreSQL, 
+--we can use a command like \d "cards"
+
+--The stations table is created in a similar manner to MySQL.
+CREATE TABLE "stations" (
+    "id" SERIAL,
+    "name" VARCHAR(32) NOT NULL UNIQUE,
+    "line" VARCHAR(32) NOT NULL,
+    PRIMARY KEY("id")
+);
+
+--we can use an ENUM to capture these options, but do not include 
+--it in the column definition. Instead, we create our own type.
+CREATE TYPE "swipe_type" AS ENUM('enter', 'exit', 'deposit');
+
+--PostgreSQL has types TIMESTAMP, DATE, TIME and INTERVAL 
+
+--A key difference with real number types in PostgreSQL 
+--is that the DECIMAL type is called NUMERIC.
+
+--We can now go ahead and create the swipes table as the following.
+CREATE TABLE "swipes" (
+    "id" SERIAL,
+    "card_id" INT,
+    "station_id" INT,
+    "type" "swipe_type" NOT NULL,
+    "datetime" TIMESTAMP NOT NULL DEFAULT now(),
+    "amount" NUMERIC(5,2) NOT NULL CHECK("amount" != 0),
+    PRIMARY KEY("id"),
+    FOREIGN KEY("station_id") REFERENCES "stations"("id"),
+    FOREIGN KEY("card_id") REFERENCES "cards"("id")
+);
+
+--For the default timestamp, we use a function provided to us by PostgreSQL called now() thst gives us the current timestamp!
+
+--To exit PostgreSQL, we use the command \q.
+
+--Scaling with MySQL
+
+--One approach here is to scale the database vertically. 
+--Scaling vertically is increasing capacity by increasing the computing power of the database server.
+
+--Another approach is to scale horizontally. 
+--This means increasing capacity by distributing load across multiple servers.
+
+--There are three main models of replication: 
+--single-leader, multi-leader, and leaderless. 
+
+--Single-leader replication involves a single database server handling incoming writes and then copying those changes into other servers
+--while multi-leader replication involves multiple servers receiving updates, leading to increased complexity.
+--Leaderless replication uses a different approach altogether that does not require leaders in this sense.
+
+--Another kind is asynchronous replication, wherein the leader communicates with follower databases asynchronously to ensure changes are replicated.
+
+--Another popular way of scaling is called sharding. This involves splitting the database into shards across multiple database servers. 
+
+--Access Controls
+
+
+--Let’s create a new user called Carter (feel free to try with your own name here)!
+CREATE USER 'carter' IDENTIFIED BY 'password';
+
+mysql -u carter -h 127.0.0.1 -P 3306 -p
+
+--When we create this new user, by default it has very few privileges. 
+SHOW DATABASES;
+
+--GRANT command is used to grant users permission for the database and tables.
+GRANT privilege, ... To user;
+
+--REVOKE is used to take back the permissions given by GRANT interrupt for the database and tables from the users.
+REVOKE privilege, ... FROM user;
+
+--As root user, grants SELECT privileges on only the `analysis` view in the `rideshare` database
+GRANT SELECT ON `rideshare`.`analysis` TO 'carter';
+
+--Now, let’s log in as the new user and verify that we can access the view. 
+--We are now able to run
+USE `rideshare`;
+
+--SQL Injection Attacks
+
+--One way to increase security of our database is to use access control and grant only the necessary privileges to each user. However, our applications that use an SQL database could also be exposed to attacks 
+--  — one of them is an SQL injection attack.
+
+--For example, a website that asks a user to log in with their username and password may be running a query like this on the database.
+SELECT `id` FROM `users`
+WHERE `user` = 'Carter' AND `password` = 'password';
+
+--In the above example, the user Carter entered their username and password as per usual. However, a malicious user could enter something different, like the string “password’ OR ‘1’ = 1” as their password
+SELECT `id` FROM `users`
+WHERE `user` = 'Carter' AND `password` = 'password' OR '1' = '1';
+
+--An example of an SQL injection attack that can be run to display all user accounts from the accounts table is this.
+
+SELECT * FROM `accounts`
+WHERE `id` = 1 UNION SELECT * FROM `accounts`;
+
+--A prepared statement is a statement in SQL that we can later insert values into. For the above query, we can write a prepared statement.
+PREPARE `balance_check`
+FROM 'SELECT * FROM `accounts`
+WHERE `id` = ?';
+
+--To actually run this statement now and check someone’s balance, we accept user input as a variable and then plug it into the prepared statement.
+SET @id = 1;
+EXECUTE `balance_check` USING @id;
+
+--The prepared statement cleans up input to ensure that no malicious SQL code is injected. 
+--Let’s try to run the same statements as above but with a malicious ID.
+SET @id = '1 UNION SELECT * FROM `accounts`';
+EXECUTE `balance_check` USING @id;

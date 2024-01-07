@@ -1,8 +1,8 @@
 At what type of address did the Lost Letter end up?: Residential
 At what address did the Lost Letter end up?: 2 Finnigan Street
 
-At what type of address did the Devious Delivery end up?: ?
-What were the contents of the Devious Delivery?: ?
+At what type of address did the Devious Delivery end up?: 
+What were the contents of the Devious Delivery?: 
 
 What are the contents of the Forgotten Gift?: Flowers
 Who has the Forgotten Gift?: Mikel
