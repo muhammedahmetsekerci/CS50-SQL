@@ -48,11 +48,11 @@
     <li><a href="https://github.com/muhammedahmetsekerci/CS50-SQL/tree/main/Week%205%20Optimizing/harvard">your.harvard</a></li>
       <br/>
   </ul>
-    <li><strong>Week 6 Scaling</strong></li>
+    <li><a href="https://github.com/muhammedahmetsekerci/CS50-SQL/blob/main/Week%206%20Scaling/lec6"><strong>Week 6 Scaling</strong></a></li>
     <ul>
     <li>Don't Panic! (Sentimental) in Python or Java</li>
-    <li>From the Deep</li>
-    <li>Happy to Connect (Sentimental)</li>
+    <li><a href="https://github.com/muhammedahmetsekerci/CS50-SQL/blob/main/Week%206%20Scaling/deep/answers.md">From the Deep</a></li>
+    <li><a href="https://github.com/muhammedahmetsekerci/CS50-SQL/blob/main/Week%206%20Scaling/Happy%20to%20Connect%20(Sentimental)/sentimental-connect/schema.sql">Happy to Connect (Sentimental)</a></li>
   </ul>
   </ul>
   <br/>
