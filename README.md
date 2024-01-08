@@ -50,14 +50,14 @@
   </ul>
     <li><a href="https://github.com/muhammedahmetsekerci/CS50-SQL/blob/main/Week%206%20Scaling/lec6"><strong>Week 6 Scaling</strong></a></li>
     <ul>
-    <li>Don't Panic! (Sentimental) in Python or Java</li>
-    <li><a href="https://github.com/muhammedahmetsekerci/CS50-SQL/blob/main/Week%206%20Scaling/deep/answers.md">From the Deep</a></li>
-    <li><a href="https://github.com/muhammedahmetsekerci/CS50-SQL/blob/main/Week%206%20Scaling/Happy%20to%20Connect%20(Sentimental)/sentimental-connect/schema.sql">Happy to Connect (Sentimental)</a></li>
+    <li><a href="https://github.com/muhammedahmetsekerci/CS50-SQL/tree/main/Week%206%20Scaling/dont-panic-python">Don't Panic! (Sentimental) in Python or Java</a></li>
+    <li><a href="https://github.com/muhammedahmetsekerci/CS50-SQL/tree/main/Week%206%20Scaling/deep">From the Deep</a></li>
+    <li><a href="https://github.com/muhammedahmetsekerci/CS50-SQL/tree/main/Week%206%20Scaling/Happy%20to%20Connect%20(Sentimental)/sentimental-connect">Happy to Connect (Sentimental)</a></li>
   </ul>
   </ul>
   <br/>
   <footer>
-    <a href="https://github.com/muhammedahmetsekerci/CS50-SQL/blob/main/wrong.txt">wrong homeworks</a>
+    <a href="https://github.com/muhammedahmetsekerci/CS50-SQL/blob/main/wrong.txt">unsolvable homework assignments</a>
     <br/>
     <a href="https://github.com/muhammedahmetsekerci/CS50-SQL/blob/main/Database%20locked%20error%20solution.txt">Database locked error solution</a>
   </footer>
