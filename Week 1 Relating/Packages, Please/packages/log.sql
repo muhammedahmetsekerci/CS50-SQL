@@ -11,7 +11,12 @@ select * from packages where id = 384;
 select * from addresses where id = 854;
 
 -- *** The Devious Delivery ***
+SELECT "contents" FROM "packages" WHERE "from_address_id" IS NULL;
 
+SELECT "type" FROM "addresses" WHERE "id" = (
+    SELECT "address_id" FROM "scans" WHERE "package_id" = 
+    (SELECT "package_id" FROM "scans" WHERE "address_id" = (SELECT "to_address_id" FROM "packages" WHERE "from_address_id" IS NULL) AND "action" = 'Pick') AND "action" = 'Drop'
+);
 
 -- *** The Forgotten Gift ***
 select * from scans where package_id = (
